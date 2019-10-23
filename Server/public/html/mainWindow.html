@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="br">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marin Château - Controle de Caixa D'Agua</title>
+    <link rel="stylesheet" href="../css/style.css" type="text/css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.7/css/all.css">
+    <script src="../script/demo.js" type="text/javascript"></script>
+</head>
+
+<body>
+
+    <div id="mainDiv" class="mainDiv">
+        <h2 class="text-center mt-5">Nível da Caixa D'Água</h2>
+
+        <div class="text-center mt-5">
+            <img src="../images/water-tower.svg" alt="Agua" style="width:50%">            
+        </div>
+        <b id="nivel" class="mt-5"></b>
+        <b id="time" class="text-center mt-5"></b>
+        <div class="d-flex justify-content-center mt-5">
+            <div class="spinner-border" role="status" id="wait">
+                <span class="sr-only">Loading...</span>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        startConnect();
+    </script>
+</body>
+</html>
