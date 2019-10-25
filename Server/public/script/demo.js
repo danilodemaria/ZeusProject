@@ -70,8 +70,8 @@ function showPage(message) {
     var messages = message.payloadString.split('-');
     document.getElementById("nivel").innerHTML = "<span>Nível atual: " + messages[0]+"%</span></br>";
     var today = new Date();
-    var date = today.getDate()+'-'+(today.getMonth()+1)+'-'+today.getFullYear();
-    var time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds()
+    var date = today.getDate()+'/'+(today.getMonth()+1)+'/'+today.getFullYear();
+    var time = today.getHours() + ":" + String(today.getMinutes()).padStart(2, '0') + ":" + String(today.getSeconds()).padStart(2, '0');
     document.getElementById("time").innerHTML = "<span>Última atualização:  "+ date+ " "+ time + "</span>";
     document.getElementById("wait").style.display = "none";
   }
