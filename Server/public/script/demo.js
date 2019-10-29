@@ -1,4 +1,11 @@
-// Called after form input is processed
+var pg = require('pg');
+const config = {
+    user: 'caixa',
+    database: 'db_caixa',
+    password: '1234',
+    port: 5432
+};
+const pool = new pg.Pool(config);
 
 function startConnect() {
     // Generate a random client ID
@@ -66,12 +73,14 @@ function publish(){
     client.send(topic_message); 
 }
 
-function showPage(message) {
-    var messages = message.payloadString.split('-');
+function showPage(message) {    
+    var messages = message.payloadString.split('-');    
     document.getElementById("nivel").innerHTML = "<span>Nível atual: " + messages[0]+"%</span></br>";
     var today = new Date();
     var date = today.getDate()+'/'+(today.getMonth()+1)+'/'+today.getFullYear();
     var time = today.getHours() + ":" + String(today.getMinutes()).padStart(2, '0') + ":" + String(today.getSeconds()).padStart(2, '0');
     document.getElementById("time").innerHTML = "<span>Última atualização:  "+ date+ " "+ time + "</span>";
     document.getElementById("wait").style.display = "none";
+
   }
+  

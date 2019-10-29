@@ -4,6 +4,7 @@
 //definição das bibliotecas
 #include <PubSubClient.h>
 #include <WiFi.h>
+#include <HTTPClient.h>
 
 // definição dos pinos dos sensores em relação a porcentagem de cada um
 #define SENSOR_25 36
@@ -29,6 +30,8 @@ void conectaWifi();
 void conectaMQTT();
 void atualizaSensores();
 void configuraIO();
+void IRAM_ATTR isr();
+void enviaBD();
 void callback(char* topic, byte* payload, unsigned int length);
 
 //definição das variaveis de controle do sistema
@@ -37,8 +40,10 @@ char tempString[8];
 
 void setup() {
   Serial.begin(115200);
+  configuraIO();
   conectaWifi();
   conectaMQTT();
+  enviaBD();
 }
 
 void loop() { 
@@ -46,10 +51,16 @@ void loop() {
 }
 
 void configuraIO(){
+  // definição dos sensores
   pinMode(SENSOR_25, INPUT);
   pinMode(SENSOR_50, INPUT);
   pinMode(SENSOR_75, INPUT);
   pinMode(SENSOR_100, INPUT);
+  //interrupções
+  attachInterrupt(SENSOR_25, isr, CHANGE);
+  attachInterrupt(SENSOR_50, isr, CHANGE);
+  attachInterrupt(SENSOR_75, isr, CHANGE);
+  attachInterrupt(SENSOR_100, isr, CHANGE);
 }
 
 void conectaWifi() {
@@ -97,7 +108,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   if (payload[0] == '1') {
     Serial.println("\nEnviando dados do sensor");
-    //client.publish("esp/nivel", "85");
     atualizaSensores();    
   }
   Serial.println();
@@ -110,12 +120,34 @@ void atualizaSensores(){
   }else if(digitalRead(SENSOR_50) == 1){
     nivelCaixa = 50;
   }else if(digitalRead(SENSOR_75) == 1){
-    nivelCaixa = 50;
+    nivelCaixa = 75;
   }else if(digitalRead(SENSOR_100) == 1){
-    nivelCaixa = 50;
+    nivelCaixa = 100;
+  }else{
+    nivelCaixa = 0;
   }
   // conversão para trabalhar no chararray do mqtt
   dtostrf(nivelCaixa, 1, 2, tempString);
   //public no topico esp/nivel
   client.publish("esp/nivel", tempString);
+}
+
+void IRAM_ATTR isr() {
+  atualizaSensores();
+  enviaBD();
+}
+
+void enviaBD(){
+  HTTPClient http;
+  String url = "http://192.168.43.56:3000/insere?nivel=";
+  atualizaSensores();
+  url = url + String(nivelCaixa);
+  Serial.println("Enviando dados para banco de dados.");
+  Serial.println(url);
+  http.begin(url);
+  int httpCode = http.GET();
+  String payload = http.getString();
+  Serial.println("Resposta do servidor");
+  Serial.println(payload);
+  http.end();
 }
