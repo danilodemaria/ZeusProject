@@ -7,7 +7,7 @@
 #include <HTTPClient.h>
 
 // definição dos pinos dos sensores em relação a porcentagem de cada um
-#define SENSOR_25 36
+#define SENSOR_25 17
 #define SENSOR_50 35
 #define SENSOR_75 34
 #define SENSOR_100 33
@@ -25,6 +25,8 @@ const char* mqttPassword = "EK32RC1rh_bK";
 WiFiClient espClient;
 PubSubClient client(espClient);
 
+portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+
 //definição das funções
 void conectaWifi();
 void conectaMQTT();
@@ -37,17 +39,24 @@ void callback(char* topic, byte* payload, unsigned int length);
 //definição das variaveis de controle do sistema
 int nivelCaixa = 0;
 char tempString[8];
+boolean flag = false;
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(115200);  
   configuraIO();
   conectaWifi();
   conectaMQTT();
+  atualizaSensores();
   enviaBD();
 }
 
 void loop() { 
-  client.loop();  
+  client.loop(); 
+  if(flag){
+    atualizaSensores();
+    enviaBD();
+    flag = false; 
+  }
 }
 
 void configuraIO(){
@@ -57,10 +66,10 @@ void configuraIO(){
   pinMode(SENSOR_75, INPUT);
   pinMode(SENSOR_100, INPUT);
   //interrupções
-  attachInterrupt(SENSOR_25, isr, CHANGE);
-  attachInterrupt(SENSOR_50, isr, CHANGE);
-  attachInterrupt(SENSOR_75, isr, CHANGE);
-  attachInterrupt(SENSOR_100, isr, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(SENSOR_25), isr, CHANGE);
+  //attachInterrupt(SENSOR_50, isr, CHANGE);
+  //attachInterrupt(SENSOR_75, isr, CHANGE);
+  //attachInterrupt(SENSOR_100, isr, CHANGE);
 }
 
 void conectaWifi() {
@@ -108,7 +117,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   if (payload[0] == '1') {
     Serial.println("\nEnviando dados do sensor");
-    atualizaSensores();    
+    atualizaSensores();   
+    Serial.println("Nivel do sensor:" );
+    Serial.println(nivelCaixa); 
   }
   Serial.println();
   Serial.println(" — — — — — — — — — — — -");
@@ -130,17 +141,19 @@ void atualizaSensores(){
   dtostrf(nivelCaixa, 1, 2, tempString);
   //public no topico esp/nivel
   client.publish("esp/nivel", tempString);
+  Serial.println(nivelCaixa);
 }
 
 void IRAM_ATTR isr() {
-  atualizaSensores();
-  enviaBD();
+  
+  detachInterrupt(digitalPinToInterrupt(SENSOR_25));
+  flag = true;
+  attachInterrupt(digitalPinToInterrupt(SENSOR_25), isr, CHANGE);  
 }
 
 void enviaBD(){
   HTTPClient http;
-  String url = "http://192.168.43.56:3000/insere?nivel=";
-  atualizaSensores();
+  String url = "http://192.168.137.1:3000/insere?nivel=";
   url = url + String(nivelCaixa);
   Serial.println("Enviando dados para banco de dados.");
   Serial.println(url);
@@ -149,5 +162,5 @@ void enviaBD(){
   String payload = http.getString();
   Serial.println("Resposta do servidor");
   Serial.println(payload);
-  http.end();
+  http.end();  
 }
