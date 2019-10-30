@@ -25,6 +25,8 @@ const char* mqttPassword = "EK32RC1rh_bK";
 WiFiClient espClient;
 PubSubClient client(espClient);
 
+portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+
 //definição das funções
 void conectaWifi();
 void conectaMQTT();
@@ -139,7 +141,7 @@ void atualizaSensores(){
   dtostrf(nivelCaixa, 1, 2, tempString);
   //public no topico esp/nivel
   client.publish("esp/nivel", tempString);
-  sprintf(nivelCaixa);
+  Serial.println(nivelCaixa);
 }
 
 void IRAM_ATTR isr() {
