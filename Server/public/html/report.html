@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
+
+<head>
+    <script>
+        window.onload = function () {
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.open("GET", "http://localhost:3000/relatorio", false); // false for synchronous request
+            xmlHttp.send(null);
+            
+            let aux = xmlHttp.responseText;
+            var json = JSON.parse(aux)
+            var datePoints = [];
+
+            for (var i = 0; i < json.length; i++) {
+                var mydate = new Date(json[i].x);
+                var ts = Math.round(mydate.getTime());
+                console.log(ts);   
+                datePoints.push({x:ts,y:parseInt(json[i].y)});                
+            }
+            console.log(datePoints);
+
+
+
+            var chart = new CanvasJS.Chart("chartContainer", {
+                animationEnabled: true,
+                title: {
+                    text: "Nível de Caixa d'Água"
+                },
+                axisX: {
+                    title: "Data"
+                },
+                axisY: {
+                    title: "Porcentagem",
+                    suffix: "%"
+                },
+                data: [{
+                    type: "line",
+                    name: "CPU Utilization",
+                    connectNullData: true,
+                    //nullDataLineDashType: "solid",
+                    xValueType: "dateTime",
+                    xValueFormatString: "YYYY DD MMM hh:mm:ss",
+                    yValueFormatString: "#,##0.##\"%\"",
+                    dataPoints: datePoints
+                }]
+            });
+
+            chart.render();
+
+        }
+    </script>
+</head>
+
+<body>
+    <div id="chartContainer" style="height: 300px; width: 100%;"></div>
+</body>
+
+</html>

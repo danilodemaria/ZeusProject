@@ -3,6 +3,7 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const app = express();
 var pg = require('pg');
+const cors = require('cors');
 
 const config = {
     user: 'caixa',
@@ -18,18 +19,22 @@ app.use(bodyParser.json());
 
 app.use(bodyParser.urlencoded({ extended: false }));
 
+app.use(cors());
+
 app.get('/', (req, res) => {
     res.sendFile('mainWindow.html', {
         root: path.join(__dirname, './public/html')
     })
 });
 
+
+
 app.get('/relatorio', (req, res) => {
     pool.connect(function (err, client, done) {
         if (err) {
             console.log("Can not connect to the DB" + err);
         }
-        client.query('SELECT * FROM nivel', function (err, result) {
+        client.query('select to_char(data, \'YYYY-MM-DD hh:mm:ss\') as "x",a.nivel as "y" from nivel a order by a.data', function (err, result) {
             done();
             if (err) {
                 console.log(err);
@@ -37,6 +42,15 @@ app.get('/relatorio', (req, res) => {
             }
             res.status(200).send(result.rows);
         })
+    })
+});
+
+app.get('/grafico', (req, res) => {
+    
+    
+
+    res.sendFile('report.html', {
+        root: path.join(__dirname, './public/html')
     })
 });
 
