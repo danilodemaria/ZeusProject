@@ -7,10 +7,9 @@
 #include <HTTPClient.h>
 
 // definição dos pinos dos sensores em relação a porcentagem de cada um
-#define SENSOR_25 17
-#define SENSOR_50 35
-#define SENSOR_75 34
-#define SENSOR_100 33
+#define SENSOR_33 5
+#define SENSOR_66 17
+#define SENSOR_100 16
 
 //definição de conexão wifi local
 const char* ssid = "Java";
@@ -26,6 +25,7 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+hw_timer_t * timer = NULL;
 
 //definição das funções
 void conectaWifi();
@@ -35,45 +35,58 @@ void configuraIO();
 void IRAM_ATTR isr();
 void enviaBD();
 void callback(char* topic, byte* payload, unsigned int length);
+void cb_timer();
+void startTimer();
 
 //definição das variaveis de controle do sistema
 int nivelCaixa = 0;
 char tempString[8];
 boolean flag = false;
+boolean envia = false;
+int timeSeconds = 5; // 5 segundos
 
 void setup() {
-  Serial.begin(115200);  
+  Serial.begin(115200);
   configuraIO();
   conectaWifi();
   conectaMQTT();
   atualizaSensores();
   enviaBD();
+  startTimer();
 }
 
-void loop() { 
-  client.loop(); 
-  if(flag){
+void loop() {
+  client.loop();
+  if (flag) {
     atualizaSensores();
     enviaBD();
-    flag = false; 
+    flag = false;
   }
+  if (envia) {
+    Serial.println("Acabou tempo, atualizando");
+    atualizaSensores();
+    enviaBD();
+    envia = false;
+    startTimer();
+  }
+
 }
 
-void configuraIO(){
+void configuraIO() {
+  Serial.println("Gerou interrupção");
   // definição dos sensores
-  pinMode(SENSOR_25, INPUT);
-  pinMode(SENSOR_50, INPUT);
-  pinMode(SENSOR_75, INPUT);
+  //pinMode(SENSOR_33, INPUT);
+  //pinMode(SENSOR_66, INPUT);
   pinMode(SENSOR_100, INPUT);
   //interrupções
-  attachInterrupt(digitalPinToInterrupt(SENSOR_25), isr, CHANGE);
-  //attachInterrupt(SENSOR_50, isr, CHANGE);
-  //attachInterrupt(SENSOR_75, isr, CHANGE);
-  //attachInterrupt(SENSOR_100, isr, CHANGE);
+  //attachInterrupt(digitalPinToInterrupt(SENSOR_33), isr, CHANGE);
+  //attachInterrupt(digitalPinToInterrupt(SENSOR_66), isr, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(SENSOR_100), isr, CHANGE);
+
 }
 
 void conectaWifi() {
-  WiFi.begin(ssid, password);  
+  WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print("Conectando a WiFi:");
@@ -117,24 +130,23 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   if (payload[0] == '1') {
     Serial.println("\nEnviando dados do sensor");
-    atualizaSensores();   
+    atualizaSensores();
     Serial.println("Nivel do sensor:" );
-    Serial.println(nivelCaixa); 
+    Serial.println(nivelCaixa);
   }
   Serial.println();
   Serial.println(" — — — — — — — — — — — -");
 }
 
-void atualizaSensores(){
-  if(digitalRead(SENSOR_25) == 1){
-    nivelCaixa = 25;
-  }else if(digitalRead(SENSOR_50) == 1){
-    nivelCaixa = 50;
-  }else if(digitalRead(SENSOR_75) == 1){
-    nivelCaixa = 75;
-  }else if(digitalRead(SENSOR_100) == 1){
+void atualizaSensores() {
+  Serial.println("Atualizando sensores");
+  //if(digitalRead(SENSOR_33) == 1){
+  //  nivelCaixa = 33;
+  //}else if(digitalRead(SENSOR_66) == 1){
+  //  nivelCaixa = 66;
+  if (digitalRead(SENSOR_100) == 0) {
     nivelCaixa = 100;
-  }else{
+  } else {
     nivelCaixa = 0;
   }
   // conversão para trabalhar no chararray do mqtt
@@ -145,13 +157,16 @@ void atualizaSensores(){
 }
 
 void IRAM_ATTR isr() {
-  
-  detachInterrupt(digitalPinToInterrupt(SENSOR_25));
+  //detachInterrupt(digitalPinToInterrupt(SENSOR_33));
+  //detachInterrupt(digitalPinToInterrupt(SENSOR_66));
+  detachInterrupt(digitalPinToInterrupt(SENSOR_100));
   flag = true;
-  attachInterrupt(digitalPinToInterrupt(SENSOR_25), isr, CHANGE);  
+  //attachInterrupt(digitalPinToInterrupt(SENSOR_33), isr, CHANGE);
+  //attachInterrupt(digitalPinToInterrupt(SENSOR_66), isr, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(SENSOR_100), isr, CHANGE);
 }
 
-void enviaBD(){
+void enviaBD() {
   HTTPClient http;
   String url = "http://192.168.137.1:3000/insere?nivel=";
   url = url + String(nivelCaixa);
@@ -162,5 +177,46 @@ void enviaBD(){
   String payload = http.getString();
   Serial.println("Resposta do servidor");
   Serial.println(payload);
-  http.end();  
+  http.end();
+}
+
+void cb_timer() {
+  static unsigned int counter = 0;
+
+  if (counter == timeSeconds) {
+    counter = 0;
+    stopTimer();
+  }
+  counter++;
+}
+
+void startTimer() {
+  //inicialização do timer. Parametros:
+  /* 0 - seleção do timer a ser usado, de 0 a 3.
+    80 - prescaler. O clock principal do ESP32 é 80MHz. Dividimos por 80 para ter 1us por tick.
+    true - true para contador progressivo, false para regressivo
+  */
+  timer = timerBegin(0, 80, true);
+
+  /*conecta à interrupção do timer
+    - timer é a instância do hw_timer
+    - endereço da função a ser chamada pelo timer
+    - edge=true gera uma interrupção
+  */
+  timerAttachInterrupt(timer, &cb_timer, true);
+
+  /* - o timer instanciado no inicio
+     - o valor em us para 1s
+     - auto-reload. true para repetir o alarme
+  */
+  timerAlarmWrite(timer, 1000000, true);
+
+  //ativa o alarme
+  timerAlarmEnable(timer);
+}
+
+void stopTimer() {
+  timerEnd(timer);
+  envia = 1;
+  timer = NULL;
 }
