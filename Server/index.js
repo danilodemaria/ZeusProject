@@ -45,6 +45,22 @@ app.get('/relatorio', (req, res) => {
     })
 });
 
+app.get('/busca', (req, res) => {
+    pool.connect(function (err, client, done) {
+        if (err) {
+            console.log("Can not connect to the DB" + err);
+        }
+        client.query('SELECT nivel FROM nivel ORDER BY id DESC LIMIT 1', function (err, result) {
+            done();
+            if (err) {
+                console.log(err);
+                res.status(400).send(err);
+            }
+            res.status(200).send(result.rows);
+        })
+    })
+});
+
 app.get('/grafico', (req, res) => {
     
     

@@ -73,7 +73,6 @@ void loop() {
 }
 
 void configuraIO() {
-  Serial.println("Gerou interrupção");
   // definição dos sensores
   //pinMode(SENSOR_33, INPUT);
   //pinMode(SENSOR_66, INPUT);
