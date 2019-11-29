@@ -7,12 +7,12 @@
 #include <HTTPClient.h>
 
 // definição dos pinos dos sensores em relação a porcentagem de cada um
-#define SENSOR_33 5
-#define SENSOR_66 17
-#define SENSOR_100 16
+//#define SENSOR_33 5
+#define SENSOR_50 39
+#define SENSOR_100 36
 
 //definição de conexão wifi local
-const char* ssid = "Java";
+const char* ssid = "reuniao";
 const char* password = "univali2019";
 //definição do servidor mqtt externo
 const char* mqttServer = "soldier.cloudmqtt.com";
@@ -43,7 +43,7 @@ int nivelCaixa = 0;
 char tempString[8];
 boolean flag = false;
 boolean envia = false;
-int timeSeconds = 5; // 5 segundos
+int timeSeconds = 180; // 3 minutos
 
 void setup() {
   Serial.begin(115200);
@@ -59,13 +59,13 @@ void loop() {
   client.loop();
   if (flag) {
     atualizaSensores();
-    enviaBD();
+    //enviaBD();
     flag = false;
   }
   if (envia) {
     Serial.println("Acabou tempo, atualizando");
     atualizaSensores();
-    enviaBD();
+    //enviaBD();
     envia = false;
     startTimer();
   }
@@ -75,11 +75,11 @@ void loop() {
 void configuraIO() {
   // definição dos sensores
   //pinMode(SENSOR_33, INPUT);
-  //pinMode(SENSOR_66, INPUT);
+  pinMode(SENSOR_50, INPUT);
   pinMode(SENSOR_100, INPUT);
   //interrupções
   //attachInterrupt(digitalPinToInterrupt(SENSOR_33), isr, CHANGE);
-  //attachInterrupt(digitalPinToInterrupt(SENSOR_66), isr, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(SENSOR_50), isr, CHANGE);
   attachInterrupt(digitalPinToInterrupt(SENSOR_100), isr, CHANGE);
 
 }
@@ -139,15 +139,15 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
 void atualizaSensores() {
   Serial.println("Atualizando sensores");
-  //if(digitalRead(SENSOR_33) == 1){
-  //  nivelCaixa = 33;
-  //}else if(digitalRead(SENSOR_66) == 1){
-  //  nivelCaixa = 66;
+  nivelCaixa = 0;
+  if(digitalRead(SENSOR_50) == 0){
+    nivelCaixa = 50;
+  }
   if (digitalRead(SENSOR_100) == 0) {
     nivelCaixa = 100;
-  } else {
-    nivelCaixa = 0;
   }
+  
+  
   // conversão para trabalhar no chararray do mqtt
   dtostrf(nivelCaixa, 1, 2, tempString);
   //public no topico esp/nivel
@@ -157,11 +157,11 @@ void atualizaSensores() {
 
 void IRAM_ATTR isr() {
   //detachInterrupt(digitalPinToInterrupt(SENSOR_33));
-  //detachInterrupt(digitalPinToInterrupt(SENSOR_66));
+  detachInterrupt(digitalPinToInterrupt(SENSOR_50));
   detachInterrupt(digitalPinToInterrupt(SENSOR_100));
   flag = true;
   //attachInterrupt(digitalPinToInterrupt(SENSOR_33), isr, CHANGE);
-  //attachInterrupt(digitalPinToInterrupt(SENSOR_66), isr, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(SENSOR_50), isr, CHANGE);
   attachInterrupt(digitalPinToInterrupt(SENSOR_100), isr, CHANGE);
 }
 

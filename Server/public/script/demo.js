@@ -81,6 +81,18 @@ function showPage(message) {
     var time = today.getHours() + ":" + String(today.getMinutes()).padStart(2, '0') + ":" + String(today.getSeconds()).padStart(2, '0');
     document.getElementById("time").innerHTML = "<span>Última atualização:  "+ date+ " "+ time + "</span>";
     document.getElementById("wait").style.display = "none";
+    let imagem = document.getElementById('imagem');
+    console.log(messages[0]);
+    if(messages[0] === '0.00'){
+        imagem.src = "../images/water-tower.png";
+    }
+    if(messages[0] === '50.00'){
+        imagem.src = "../images/water-tower50.png";
+    }
+    if(messages[0] === '100.00'){
+        imagem.src = "../images/water-tower100.png";
+    }
+    
 
   }
   

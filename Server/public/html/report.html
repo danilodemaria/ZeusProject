@@ -6,7 +6,7 @@
     <script>
         window.onload = function () {
             var xmlHttp = new XMLHttpRequest();
-            xmlHttp.open("GET", "http://localhost:3000/relatorio", false); // false for synchronous request
+            xmlHttp.open("GET", "http://localhost:3000/relatorio1", false); // false for synchronous request
             xmlHttp.send(null);
             
             let aux = xmlHttp.responseText;
@@ -15,11 +15,12 @@
 
             for (var i = 0; i < json.length; i++) {
                 var mydate = new Date(json[i].x);
+                            
                 var ts = Math.round(mydate.getTime());
-                console.log(ts);   
+                             
                 datePoints.push({x:ts,y:parseInt(json[i].y)});                
             }
-            console.log(datePoints);
+            // console.log(datePoints);
 
 
 
@@ -33,15 +34,17 @@
                 },
                 axisY: {
                     title: "Porcentagem",
-                    suffix: "%"
+                    suffix: "%",
+                    maximum: 110
+                    
                 },
                 data: [{
                     type: "line",
-                    name: "CPU Utilization",
+                    name: "AGUA",
                     connectNullData: true,
                     //nullDataLineDashType: "solid",
                     xValueType: "dateTime",
-                    xValueFormatString: "YYYY DD MMM hh:mm:ss",
+                    xValueFormatString: "YYYY DD MMM HH:mm:ss",
                     yValueFormatString: "#,##0.##\"%\"",
                     dataPoints: datePoints
                 }]
