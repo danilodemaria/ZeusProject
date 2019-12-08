@@ -7,12 +7,11 @@
 #include <HTTPClient.h>
 
 // definição dos pinos dos sensores em relação a porcentagem de cada um
-//#define SENSOR_33 5
 #define SENSOR_50 39
 #define SENSOR_100 36
 
 //definição de conexão wifi local
-const char* ssid = "reuniao";
+const char* ssid = "Java";
 const char* password = "univali2019";
 //definição do servidor mqtt externo
 const char* mqttServer = "soldier.cloudmqtt.com";
@@ -59,7 +58,7 @@ void loop() {
   client.loop();
   if (flag) {
     atualizaSensores();
-    //enviaBD();
+    enviaBD();
     flag = false;
   }
   if (envia) {
@@ -74,11 +73,9 @@ void loop() {
 
 void configuraIO() {
   // definição dos sensores
-  //pinMode(SENSOR_33, INPUT);
   pinMode(SENSOR_50, INPUT);
   pinMode(SENSOR_100, INPUT);
   //interrupções
-  //attachInterrupt(digitalPinToInterrupt(SENSOR_33), isr, CHANGE);
   attachInterrupt(digitalPinToInterrupt(SENSOR_50), isr, CHANGE);
   attachInterrupt(digitalPinToInterrupt(SENSOR_100), isr, CHANGE);
 
@@ -86,10 +83,11 @@ void configuraIO() {
 
 void conectaWifi() {
   WiFi.begin(ssid, password);
+  Serial.print("Conectando a WiFi:");
+  Serial.println(ssid);
   while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print("Conectando a WiFi:");
-    Serial.println(ssid);
+    Serial.print(".");
+    delay(500);    
   }
   Serial.println("Conectado com sucesso!");
   Serial.println("");
@@ -156,11 +154,9 @@ void atualizaSensores() {
 }
 
 void IRAM_ATTR isr() {
-  //detachInterrupt(digitalPinToInterrupt(SENSOR_33));
   detachInterrupt(digitalPinToInterrupt(SENSOR_50));
   detachInterrupt(digitalPinToInterrupt(SENSOR_100));
   flag = true;
-  //attachInterrupt(digitalPinToInterrupt(SENSOR_33), isr, CHANGE);
   attachInterrupt(digitalPinToInterrupt(SENSOR_50), isr, CHANGE);
   attachInterrupt(digitalPinToInterrupt(SENSOR_100), isr, CHANGE);
 }
