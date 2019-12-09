@@ -14,8 +14,8 @@ function startConnect() {
     document.getElementById("time").innerHTML = "<span>Aguardando resposta do servidor </span>";
 
     // Fetch the hostname/IP address and port number from the form
-    host = 'soldier.cloudmqtt.com';
-    port = 33470;
+    host = 'tailor.cloudmqtt.com';
+    port = 35684;
     topic = 'esp/nivel';
 
     // Initialize new Paho client connection
@@ -27,8 +27,8 @@ function startConnect() {
 
     var options = {
         useSSL: true,
-        userName: "ivytoyoe",
-        password: "EK32RC1rh_bK",
+        userName: "wieodasv",
+        password: "BC_Vlbj4xd9w",
         onSuccess: onConnect,
         onFailure: doFail
       }

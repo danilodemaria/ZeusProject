@@ -7,17 +7,18 @@
 #include <HTTPClient.h>
 
 // definição dos pinos dos sensores em relação a porcentagem de cada um
+//#define SENSOR_33 5
 #define SENSOR_50 39
 #define SENSOR_100 36
 
 //definição de conexão wifi local
-const char* ssid = "Java";
+const char* ssid = "reuniao";
 const char* password = "univali2019";
 //definição do servidor mqtt externo
-const char* mqttServer = "tailor.cloudmqtt.com";
-const int mqttPort = 15684;
-const char* mqttUser = "wieodasv";
-const char* mqttPassword = "BC_Vlbj4xd9w";
+const char* mqttServer = "soldier.cloudmqtt.com";
+const int mqttPort = 13470;
+const char* mqttUser = "ivytoyoe";
+const char* mqttPassword = "EK32RC1rh_bK";
 
 //instanciando objetos dos clientes
 WiFiClient espClient;
@@ -25,8 +26,10 @@ PubSubClient client(espClient);
 
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 hw_timer_t * timer = NULL;
+hw_timer_t * timerCritico = NULL;
 
 //definição das funções
+void startTimerCritico();
 void conectaWifi();
 void conectaMQTT();
 void atualizaSensores();
@@ -39,16 +42,49 @@ void startTimer();
 
 //definição das variaveis de controle do sistema
 int nivelCaixa = 0;
+int nivelAnterior = 0;
 char tempString[8];
 boolean flag = false;
 boolean envia = false;
+boolean alarme = false;
+boolean primeiraIteracao = true;
+int tempoCritico = 1800;
+boolean  alarmeCritico = true;
 int timeSeconds = 180; // 3 minutos
+
+void startTimerCritico(){
+
+   //inicialização do timer. Parametros:
+  /* 0 - seleção do timer a ser usado, de 0 a 3.
+    80 - prescaler. O clock principal do ESP32 é 80MHz. Dividimos por 80 para ter 1us por tick.
+    true - true para contador progressivo, false para regressivo
+  */
+  timerCritico = timerBegin(1, 80, true);
+
+  /*conecta à interrupção do timer
+    - timer é a instância do hw_timer
+    - endereço da função a ser chamada pelo timer
+    - edge=true gera uma interrupção
+  */
+  timerAttachInterrupt(timerCritico, &cb_timer, true);
+
+  /* - o timer instanciado no inicio
+     - o valor em us para 1s
+     - auto-reload. true para repetir o alarme
+  */
+  timerAlarmWrite(timerCritico, 1000000, true);
+
+  //ativa o alarme
+  timerAlarmEnable(timerCritico);
+  
+}
 
 void setup() {
   Serial.begin(115200);
   configuraIO();
   conectaWifi();
   conectaMQTT();
+  startTimerCritico();
   atualizaSensores();
   enviaBD();
   startTimer();
@@ -59,6 +95,28 @@ void loop() {
   if (flag) {
     atualizaSensores();
     enviaBD();
+    if(primeiraIteracao){
+      if(nivelCaixa == 50){
+        startTimerCritico();
+        nivelAnterior = nivelCaixa;
+        primeiraIteracao = false;
+      }
+    }else{
+      if(nivelCaixa == nivelAnterior){ //caso nao tenha mudado os niveis
+          alarme = true;
+      }else if ((nivelCaixa == 50 && nivelAnterior == 100)){ //caso o nivel atual tenha descido 30% em relação ao anterior
+          if(alarme){
+            Serial.println("DISPARA ALARME CRITICO");
+            //DISPARA ALARME CRITICO
+          }else{ //caso o nivel atual tenha aumentado em relação ao anterior.
+            alarme = true;
+          }    
+      }else{
+        alarme = true;
+      }
+      nivelAnterior = nivelCaixa;
+    }
+    
     flag = false;
   }
   if (envia) {
@@ -73,9 +131,11 @@ void loop() {
 
 void configuraIO() {
   // definição dos sensores
+  //pinMode(SENSOR_33, INPUT);
   pinMode(SENSOR_50, INPUT);
   pinMode(SENSOR_100, INPUT);
   //interrupções
+  //attachInterrupt(digitalPinToInterrupt(SENSOR_33), isr, CHANGE);
   attachInterrupt(digitalPinToInterrupt(SENSOR_50), isr, CHANGE);
   attachInterrupt(digitalPinToInterrupt(SENSOR_100), isr, CHANGE);
 
@@ -83,11 +143,10 @@ void configuraIO() {
 
 void conectaWifi() {
   WiFi.begin(ssid, password);
-  Serial.print("Conectando a WiFi:");
-  Serial.println(ssid);
   while (WiFi.status() != WL_CONNECTED) {
-    Serial.print(".");
-    delay(500);    
+    delay(500);
+    Serial.print("Conectando a WiFi:");
+    Serial.println(ssid);
   }
   Serial.println("Conectado com sucesso!");
   Serial.println("");
@@ -154,9 +213,11 @@ void atualizaSensores() {
 }
 
 void IRAM_ATTR isr() {
+  //detachInterrupt(digitalPinToInterrupt(SENSOR_33));
   detachInterrupt(digitalPinToInterrupt(SENSOR_50));
   detachInterrupt(digitalPinToInterrupt(SENSOR_100));
   flag = true;
+  //attachInterrupt(digitalPinToInterrupt(SENSOR_33), isr, CHANGE);
   attachInterrupt(digitalPinToInterrupt(SENSOR_50), isr, CHANGE);
   attachInterrupt(digitalPinToInterrupt(SENSOR_100), isr, CHANGE);
 }
@@ -177,15 +238,25 @@ void enviaBD() {
 
 void cb_timer() {
   static unsigned int counter = 0;
+  static unsigned int counterRT= 0;
 
   if (counter == timeSeconds) {
     counter = 0;
     stopTimer();
   }
+
+  if (counterRT == tempoCritico) {
+    counterRT = 0;
+    alarme = false;
+    stopTimer();
+  }
+  counterRT++;
   counter++;
 }
 
+
 void startTimer() {
+
   //inicialização do timer. Parametros:
   /* 0 - seleção do timer a ser usado, de 0 a 3.
     80 - prescaler. O clock principal do ESP32 é 80MHz. Dividimos por 80 para ter 1us por tick.
